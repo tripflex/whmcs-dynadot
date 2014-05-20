@@ -27,13 +27,18 @@ class WHMCS_Dynadot {
 
 	}
 
+	public function xmlToArray($xml){
+		//	    Convert XML object to array hack
+		$array = json_decode( json_encode( $xml ), 1 );
+		return $array;
+	}
+
 	public function getNS( $params ) {
 		$this->setCommand( 'domain_info' );
 		$response    = $this->api( $params );
 		$nameservers = $response->xpath( '//NameServerSettings/NameServers' )[0];
 
-		//	    Convert XML object to array hack
-		$ns_array = json_decode( json_encode( $nameservers->ServerName ), 1 );
+		$ns_array = $this->xmlToArray( $nameservers->ServerName );
 
 		foreach ( $ns_array as $ns_index => $ns_value ) {
 			// Check to make sure isn't blank array

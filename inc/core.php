@@ -11,7 +11,7 @@ class WHMCS_Dynadot {
 	protected $values = array();
 	protected $params;
 	protected $api_key;
-	protected $arguments;
+	protected $arguments = array();
 
 	public function __construct( $params ) {
 		$this->setParams( $params );
@@ -76,8 +76,6 @@ class WHMCS_Dynadot {
 
 		$params = $this->getParams();
 
-		$this->setCommand( 'set_ns' );
-
 		// Relationship values from Dynadot to WHMCS
 		$dynadot_to_whmcs = [
 			'ns0' => 'ns1',
@@ -86,6 +84,23 @@ class WHMCS_Dynadot {
 			'ns3' => 'ns4'
 		];
 
+		// Quick hack fix to add ns to account if does not exist
+		// otherwise you can not save nameservers
+		$this->setCommand( 'add_ns' );
+		foreach ( $dynadot_to_whmcs as $ns_dd => $ns_whmcs ) {
+			$ns_whmcs_value = $params[ $ns_whmcs ];
+			if ( $ns_whmcs_value ) {
+				$this->setArgument( 'host', $ns_whmcs_value );
+				$this->callAPI();
+				$this->log('arguments ' . $ns_whmcs_value, $this->getArguments());
+			}
+		}
+
+		$this->setValues(null);
+		$this->setArguments(null);
+		
+		// Now attempt to set nameservers
+		$this->setCommand( 'set_ns' );
 		foreach ( $dynadot_to_whmcs as $ns_dd => $ns_whmcs ) {
 			$ns_whmcs_value = $params[ $ns_whmcs ];
 			if ( $ns_whmcs_value ) {
@@ -280,8 +295,9 @@ class WHMCS_Dynadot {
 	 * @return mixed
 	 */
 	public function getArguments() {
+		$this->log('build args pre', $this->arguments);
 		$encoded_arguments = http_build_query( $this->arguments );
-
+		$this->log('build args', $encoded_arguments);
 		return $encoded_arguments;
 	}
 
@@ -293,7 +309,7 @@ class WHMCS_Dynadot {
 	}
 
 	public function setArgument( $argument, $value ) {
-		$arguments              = $this->getArguments();
+		$arguments              = $this->arguments;
 		$arguments[ $argument ] = $value;
 		$this->setArguments( $arguments );
 	}

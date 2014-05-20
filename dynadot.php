@@ -13,7 +13,7 @@ function dynadot_getnameservers( $params )
 
 function dynadot_savenameservers( $params )
 {
-    $query = "https://api.dynadot.com/api2.html?key={$params['APIKey']}&command=set_ns&domain={$params['sld']}.{$params['tld']}";
+    $query = "https://api.dynadot.com/api3.xml?key={$params['APIKey']}&command=set_ns&domain={$params['sld']}.{$params['tld']}";
     if ( $params['ns1'] )
     {
         $query .= "&ns0={$params['ns1']}";
@@ -44,7 +44,7 @@ function dynadot_savenameservers( $params )
 
 function dynadot_registerdomain( $params )
 {
-    $query = "https://api.dynadot.com/api2.html?key={$params['APIKey']}&command=register&domain={$params['sld']}.{$params['tld']}&duration={$params['regperiod']}";
+    $query = "https://api.dynadot.com/api3.xml?key={$params['APIKey']}&command=register&domain={$params['sld']}.{$params['tld']}&duration={$params['regperiod']}";
     $ch = curl_init( );
     curl_setopt( $ch, CURLOPT_URL, $query );
     curl_setopt( $ch, CURLOPT_HEADER, 0 );
@@ -61,7 +61,7 @@ function dynadot_registerdomain( $params )
 
 function dynadot_renewdomain( $params )
 {
-    $query = "https://api.dynadot.com/api2.html?key={$params['APIKey']}&command=renew&domain={$params['sld']}.{$params['tld']}&duration={$params['regperiod']}";
+    $query = "https://api.dynadot.com/api3.xml?key={$params['APIKey']}&command=renew&domain={$params['sld']}.{$params['tld']}&duration={$params['regperiod']}";
     $ch = curl_init( );
     curl_setopt( $ch, CURLOPT_URL, $query );
     curl_setopt( $ch, CURLOPT_HEADER, 0 );

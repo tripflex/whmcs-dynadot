@@ -4,9 +4,10 @@ class WHMCS_Dynadot {
 
 	const version = '2.0.0';
 	const api_url = 'https://api.dynadot.com/api3.xml?key=';
-	public $error;
+	private $error;
 	private $command;
 	private $domain;
+	private $values;
 
 	public function __construct() {
 
@@ -39,11 +40,11 @@ class WHMCS_Dynadot {
 			if ( $ns_value ) {
 				$ns_num        = $ns_index + 1;
 				$ns            = 'ns' . $ns_num;
-				$values[ $ns ] = $ns_value;
+				$this->setValue($ns, $ns_value);
 			}
 		}
 
-		return $values;
+		return $this->getValues();
 	}
 
 	public function api( $params ) {
@@ -68,6 +69,7 @@ class WHMCS_Dynadot {
 		if ( $status == 'error' ) {
 			$find_error = $response->xpath( '//Error' );
 			$error      = (string) $find_error[0];
+			$this->setError($error);
 			logModuleCall( 'dynadot', 'dynadot ' . $this->getCommand() . ' error', $response, $error );
 		}
 
@@ -77,6 +79,31 @@ class WHMCS_Dynadot {
 	}
 
 	//	Getters and Setters
+
+	/**
+	 * @return mixed
+	 */
+	public function getValues() {
+		return $this->values;
+	}
+
+	/**
+	 * @param mixed $values
+	 */
+	public function setValues( $values ) {
+		$this->values = $values;
+	}
+
+	public function setValue( $key, $value ){
+		$currentValues = $this->getValues();
+		$currentValues[$key] = $value;
+		$this->setValues($currentValues);
+	}
+
+	public function getValue( $key ){
+		$currentValues = $this->getValues();
+		return $currentValues[$key];
+	}
 
 	/**
 	 * @return mixed
@@ -95,15 +122,16 @@ class WHMCS_Dynadot {
 	/**
 	 * @return mixed
 	 */
-	public static function getError() {
-		return self::$error;
+	public function getError() {
+		return $this->$error;
 	}
 
 	/**
 	 * @param mixed $error
 	 */
-	public static function setError( $error ) {
-		self::$error = $error;
+	public function setError( $error ) {
+		$this->$error = $error;
+		$this->setValue('error', $error);
 	}
 
 	/**

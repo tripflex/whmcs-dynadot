@@ -36,9 +36,19 @@ function dynadot_savenameservers( $params )
     curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
     $result = curl_exec( $ch );
     curl_close( $ch );
-    $result = explode( ",", $result );
-    logModuleCall('dynadot', 'dynadot set nameservers', $query, $result);   
-    // $values['error'] = $result[2];
+
+    $response = simplexml_load_string($result);
+
+    logModuleCall('dynadot', 'dynadot save ns', $query, $result);
+
+    $responsexml = $response->SetNsHeader[0];
+
+    if($responsexml->Status == 'error'){
+    	$error = $responsexml->Error;
+    	logModuleCall('dynadot', 'dynadot save ns error', $responsexml, $error);
+        $values['error'] = $error;
+    }
+
     return $values;
 }
 

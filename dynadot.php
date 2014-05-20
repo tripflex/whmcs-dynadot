@@ -2,7 +2,7 @@
 
 function dynadot_getconfigarray( )
 {
-    $configarray = array( "APIKey" => array( "Type" => "text", "Size" => "20", "Description" => "Put your Dynadot API v2 Key here." ) );
+    $configarray = array( "APIKey" => array( "Type" => "text", "Size" => "20", "Description" => "Put your Dynadot API v3 Key here." ) );
     return $configarray;
 }
 

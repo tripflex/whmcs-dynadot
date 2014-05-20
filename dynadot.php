@@ -37,7 +37,8 @@ function dynadot_savenameservers( $params )
     $result = curl_exec( $ch );
     curl_close( $ch );
     $result = explode( ",", $result );
-    $values['error'] = $result[2];
+    logModuleCall('dynadot', 'dynadot set nameservers', $query, $result);   
+    // $values['error'] = $result[2];
     return $values;
 }
 

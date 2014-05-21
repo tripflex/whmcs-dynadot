@@ -1,5 +1,15 @@
 <?php
 
+/**
+ * @title               WHMCS Dynadot Registar Class
+ *
+ * @author              Myles McNamara (get@smyl.es)
+ * @url                 http://smyl.es
+ * @github              https://github.com/tripflex/whmcs-dynadot
+ * @copyright           Copyright (c) Myles McNamara 2014
+ * @license             GPLv3+
+ * @Date                5/20/14
+ */
 class WHMCS_Dynadot {
 
 	const version = '2.0.0';
@@ -20,7 +30,7 @@ class WHMCS_Dynadot {
 		$this->setApiKey( $params['APIKey'] );
 	}
 
-	public function check_for_update() {
+	public static function check_for_update() {
 		$url     = 'https://github.com/tripflex/whmcs-dynadot/raw/master/release';
 		$release = file_get_contents( $url, "r" );
 		if ( intval( $release ) > intval( self::version ) ) {

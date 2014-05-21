@@ -14,7 +14,7 @@ class WHMCS_Dynadot {
 
 	const version = '2.0.0';
 	const api_url = 'https://api.dynadot.com/api3.xml?key=';
-	public $enable_debug = true;
+	public $enable_debug = false;
 	protected $error;
 	protected $command;
 	protected $domain;
@@ -33,6 +33,7 @@ class WHMCS_Dynadot {
 	public static function check_for_update() {
 		$url     = 'https://github.com/tripflex/whmcs-dynadot/raw/master/release';
 		$release = file_get_contents( $url, "r" );
+		logModuleCall( 'dynadot', 'update check', self::version, intval($release));
 		if ( intval( $release ) > intval( self::version ) ) {
 			return true;
 		} else {

@@ -4,7 +4,7 @@ class WHMCS_Dynadot {
 
 	const version = '2.0.0';
 	const api_url = 'https://api.dynadot.com/api3.xml?key=';
-	public $enable_debug = false;
+	public $enable_debug = true;
 	protected $error;
 	protected $command;
 	protected $domain;
@@ -12,22 +12,15 @@ class WHMCS_Dynadot {
 	protected $params;
 	protected $api_key;
 	protected $arguments = array();
+	protected $account_ns;
 
 	public function __construct( $params ) {
 		$this->setParams( $params );
 		$this->setDomain( $params['sld'] . '.' . $params['tld'] );
 		$this->setApiKey( $params['APIKey'] );
-		// Debug Logging
-		$this->doDebug();
-	}
-
-	public function doDebug() {
-		$this->debug( debug_backtrace() );
 	}
 
 	public function check_for_update() {
-		// Debug Logging
-		$this->doDebug();
 		$url     = 'https://github.com/tripflex/whmcs-dynadot/raw/master/release';
 		$release = file_get_contents( $url, "r" );
 		if ( intval( $release ) > intval( self::version ) ) {
@@ -51,29 +44,67 @@ class WHMCS_Dynadot {
 		logModuleCall( 'dynadot', $command, $request, $response, '', array( $this->getApiKey() ) );
 	}
 
-	public function domainInfo( $xml ) {
-
-	}
-
 	public function epochToDate( $epoch ) {
 		$date = new DateTime( "@$epoch" );
 
 		return $date->format( 'Y-m-d' );
 	}
 
-	public function xmlToArray( $xml ) {
-		// Debug Logging
-		$this->doDebug();
+	public function xmlToArrayJSON( $xml ) {
 		//	    Convert XML object to array hack
 		$array = json_decode( json_encode( $xml ), 1 );
 
 		return $array;
 	}
 
-	public function saveNS() {
-		// Debug Logging
-		$this->doDebug();
+	public function getNSlist(){
+		$this->debug('Getting NS list from Dynadot...');
+		$this->setCommand('server_list');
+		$response    = $this->callAPI();
+		$nameservers = $response->xpath( '//NameServerList/List' )[0];
 
+		$ns_array = $this->xmlToArrayJSON($nameservers);
+
+		$this->debug('NS list retrieved:', $ns_array['Server']);
+
+		$this->setAccountNs( $ns_array['Server'] );
+	}
+
+	public function isNSinAccount($ns_to_check){
+		$this->debug('Checking if NS is already in account:', $ns_to_check);
+		$ns_list = $this->getAccountNs();
+		$found_ns = false;
+
+		foreach( $ns_list as $ns_value ){
+			if(in_array($ns_to_check, $ns_value)) $found_ns = true;
+		}
+
+		return $found_ns;
+	}
+
+	public function addNSifNeeded( $ns ){
+		$skip_add_ns = $this->isNSinAccount($ns);
+		if(!$skip_add_ns){
+			$this->debug('NS does not exist in account, adding...', $ns);
+
+			// Save current arguments in memory
+			$save_args = $this->getArguments();
+
+			// Remove arguments so we can insert argument for adding ns
+			$this->setArguments(null);
+
+			$this->setCommand( 'add_ns' );
+			$this->setArgument( 'host', $ns );
+			$this->callAPI();
+
+			// Set arguments back to original
+			$this->setArguments($save_args);
+		} else {
+			$this->debug('Skip adding NS to account, already exists.', $skip_add_ns);
+		}
+	}
+
+	public function saveNS() {
 		$params = $this->getParams();
 
 		// Relationship values from Dynadot to WHMCS
@@ -84,43 +115,27 @@ class WHMCS_Dynadot {
 			'ns3' => 'ns4'
 		];
 
-		// Quick hack fix to add ns to account if does not exist
-		// otherwise you can not save nameservers
-		$this->setCommand( 'add_ns' );
 		foreach ( $dynadot_to_whmcs as $ns_dd => $ns_whmcs ) {
 			$ns_whmcs_value = $params[ $ns_whmcs ];
 			if ( $ns_whmcs_value ) {
-				$this->setArgument( 'host', $ns_whmcs_value );
-				$this->callAPI();
-				$this->log('arguments ' . $ns_whmcs_value, $this->getArguments());
-			}
-		}
-
-		$this->setValues(null);
-		$this->setArguments(null);
-		
-		// Now attempt to set nameservers
-		$this->setCommand( 'set_ns' );
-		foreach ( $dynadot_to_whmcs as $ns_dd => $ns_whmcs ) {
-			$ns_whmcs_value = $params[ $ns_whmcs ];
-			if ( $ns_whmcs_value ) {
+				$this->addNSifNeeded( $ns_whmcs_value );
 				$this->setArgument( $ns_dd, $ns_whmcs_value );
 			}
 		}
 
+		// Now attempt to set nameservers
+		$this->setCommand( 'set_ns' );
 		$this->callAPI();
 
 		return $this->getValues();
 	}
 
 	public function getNS() {
-		// Debug Logging
-		$this->doDebug();
 		$this->setCommand( 'domain_info' );
 		$response    = $this->callAPI();
 		$nameservers = $response->xpath( '//NameServerSettings/NameServers' )[0];
 
-		$ns_array = $this->xmlToArray( $nameservers->ServerName );
+		$ns_array = $this->xmlToArrayJSON( $nameservers->ServerName );
 
 		foreach ( $ns_array as $ns_index => $ns_value ) {
 			// Check to make sure isn't blank array
@@ -128,6 +143,7 @@ class WHMCS_Dynadot {
 				$ns_num = $ns_index + 1;
 				$ns     = 'ns' . $ns_num;
 				$this->setValue( $ns, $ns_value );
+				$this->debug('Nameserver ' . $ns . ' found:', $ns_value);
 			}
 		}
 
@@ -135,8 +151,6 @@ class WHMCS_Dynadot {
 	}
 
 	public function register() {
-		// Debug Logging
-		$this->doDebug();
 		$params = $this->getParams();
 		$this->setCommand( 'register' );
 		$this->setArgument( 'duration', $params['regperiod'] );
@@ -147,39 +161,41 @@ class WHMCS_Dynadot {
 	}
 
 	public function renew() {
-		// Debug Logging
-		$this->doDebug();
 		$params = $this->getParams();
 		$this->setCommand( 'renew' );
 		$this->setArgument( 'duration', $params['regperiod'] );
-
+		$this->debug('Renewing domain ' . $this->getDomain(), $this->getArguments());
 		$this->callAPI();
 
 		return $this->getValues();
 	}
 
 	public function callAPI() {
-		// Debug Logging
-		$this->doDebug();
-
 		$query = self::api_url . $this->getApiKey() . '&command=' . $this->getCommand() . '&domain=' . $this->getDomain();
+
 		// If there are arguments, add to the query string
 		if ( $this->getArguments() ) {
-			$query .= '&' . $this->getArguments();
+			$query .= '&' . $this->buildArguments();
 		}
 
 		$ch = curl_init();
 		curl_setopt( $ch, CURLOPT_URL, $query );
-		curl_setopt( $ch, CURLOPT_HEADER, 0 );
+		curl_setopt( $ch, CURLOPT_HEADER, 'Content-Type:application/xml' );
 		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
 		$result = curl_exec( $ch );
 		curl_close( $ch );
 
+		$this->log( $query, $result );
+
 		$response = simplexml_load_string( $result );
+
+		$this->debug( 'API Response (asXML)', $response->asXML() );
 
 		// Check for errors
 		$find_status = $response->xpath( '//Status' );
 		$status      = (string) $find_status[0];
+
+		$this->debug( 'API Status', $status );
 
 		if ( $status == 'error' ) {
 			$find_error = $response->xpath( '//Error' );
@@ -187,7 +203,6 @@ class WHMCS_Dynadot {
 			$this->setError( $error );
 			$this->log( $response, $error, 'error' );
 		}
-		$this->log( $query, $result );
 
 		return $response;
 	}
@@ -295,9 +310,16 @@ class WHMCS_Dynadot {
 	 * @return mixed
 	 */
 	public function getArguments() {
-		$this->log('build args pre', $this->arguments);
-		$encoded_arguments = http_build_query( $this->arguments );
-		$this->log('build args', $encoded_arguments);
+		return $this->arguments;
+	}
+
+	/**
+	 * @return mixed
+	 */
+	public function buildArguments() {
+		$this->debug('Building Arguments Array', $this->getArguments());
+		$encoded_arguments = http_build_query( $this->getArguments() );
+		$this->debug('Building Arguments Built', $encoded_arguments);
 		return $encoded_arguments;
 	}
 
@@ -309,7 +331,7 @@ class WHMCS_Dynadot {
 	}
 
 	public function setArgument( $argument, $value ) {
-		$arguments              = $this->arguments;
+		$arguments              = $this->getArguments();
 		$arguments[ $argument ] = $value;
 		$this->setArguments( $arguments );
 	}
@@ -318,5 +340,20 @@ class WHMCS_Dynadot {
 		$arguments = $this->getArguments();
 
 		return $arguments[ $argument ];
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getAccountNs() {
+		if(!$this->account_ns) $this->getNSlist();
+		return $this->account_ns;
+	}
+
+	/**
+	 * @param array $account_ns
+	 */
+	public function setAccountNs( $account_ns ) {
+		$this->account_ns = $account_ns;
 	}
 }

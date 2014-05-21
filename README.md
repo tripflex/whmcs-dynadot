@@ -2,7 +2,7 @@ WHMCS Dynadot Registrar Module
 ======================
 
 ###### Author: Myles McNamara (get@smyl.es)
-###### Current Release: 2.0
+###### Current Release: 2.0.0
 
 The only Dynadot WHMCS module I could find was old, outdated, and really didn't even work anymore.  Because the only thing that worked was to register a new domain name, I decided to go ahead and create a new module myself.
 

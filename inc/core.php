@@ -57,50 +57,52 @@ class WHMCS_Dynadot {
 		return $array;
 	}
 
-	public function getNSlist(){
-		$this->debug('Getting NS list from Dynadot...');
-		$this->setCommand('server_list');
+	public function getNSlist() {
+		$this->debug( 'Getting NS list from Dynadot...' );
+		$this->setCommand( 'server_list' );
 		$response    = $this->callAPI();
 		$nameservers = $response->xpath( '//NameServerList/List' )[0];
 
-		$ns_array = $this->xmlToArrayJSON($nameservers);
+		$ns_array = $this->xmlToArrayJSON( $nameservers );
 
-		$this->debug('NS list retrieved:', $ns_array['Server']);
+		$this->debug( 'NS list retrieved:', $ns_array['Server'] );
 
 		$this->setAccountNs( $ns_array['Server'] );
 	}
 
-	public function isNSinAccount($ns_to_check){
-		$this->debug('Checking if NS is already in account:', $ns_to_check);
-		$ns_list = $this->getAccountNs();
+	public function isNSinAccount( $ns_to_check ) {
+		$this->debug( 'Checking if NS is already in account:', $ns_to_check );
+		$ns_list  = $this->getAccountNs();
 		$found_ns = false;
 
-		foreach( $ns_list as $ns_value ){
-			if(in_array($ns_to_check, $ns_value)) $found_ns = true;
+		foreach ( $ns_list as $ns_value ) {
+			if ( in_array( $ns_to_check, $ns_value ) ) {
+				$found_ns = true;
+			}
 		}
 
 		return $found_ns;
 	}
 
-	public function addNSifNeeded( $ns ){
-		$skip_add_ns = $this->isNSinAccount($ns);
-		if(!$skip_add_ns){
-			$this->debug('NS does not exist in account, adding...', $ns);
+	public function addNSifNeeded( $ns ) {
+		$skip_add_ns = $this->isNSinAccount( $ns );
+		if ( !$skip_add_ns ) {
+			$this->debug( 'NS does not exist in account, adding...', $ns );
 
 			// Save current arguments in memory
 			$save_args = $this->getArguments();
 
 			// Remove arguments so we can insert argument for adding ns
-			$this->setArguments(null);
+			$this->setArguments( null );
 
 			$this->setCommand( 'add_ns' );
 			$this->setArgument( 'host', $ns );
 			$this->callAPI();
 
 			// Set arguments back to original
-			$this->setArguments($save_args);
+			$this->setArguments( $save_args );
 		} else {
-			$this->debug('Skip adding NS to account, already exists.', $skip_add_ns);
+			$this->debug( 'Skip adding NS to account, already exists.', $skip_add_ns );
 		}
 	}
 
@@ -143,7 +145,7 @@ class WHMCS_Dynadot {
 				$ns_num = $ns_index + 1;
 				$ns     = 'ns' . $ns_num;
 				$this->setValue( $ns, $ns_value );
-				$this->debug('Nameserver ' . $ns . ' found:', $ns_value);
+				$this->debug( 'Nameserver ' . $ns . ' found:', $ns_value );
 			}
 		}
 
@@ -164,7 +166,7 @@ class WHMCS_Dynadot {
 		$params = $this->getParams();
 		$this->setCommand( 'renew' );
 		$this->setArgument( 'duration', $params['regperiod'] );
-		$this->debug('Renewing domain ' . $this->getDomain(), $this->getArguments());
+		$this->debug( 'Renewing domain ' . $this->getDomain(), $this->getArguments() );
 		$this->callAPI();
 
 		return $this->getValues();
@@ -317,9 +319,10 @@ class WHMCS_Dynadot {
 	 * @return mixed
 	 */
 	public function buildArguments() {
-		$this->debug('Building Arguments Array', $this->getArguments());
+		$this->debug( 'Building Arguments Array', $this->getArguments() );
 		$encoded_arguments = http_build_query( $this->getArguments() );
-		$this->debug('Building Arguments Built', $encoded_arguments);
+		$this->debug( 'Building Arguments Built', $encoded_arguments );
+
 		return $encoded_arguments;
 	}
 
@@ -346,7 +349,10 @@ class WHMCS_Dynadot {
 	 * @return array
 	 */
 	public function getAccountNs() {
-		if(!$this->account_ns) $this->getNSlist();
+		if ( !$this->account_ns ) {
+			$this->getNSlist();
+		}
+
 		return $this->account_ns;
 	}
 

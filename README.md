@@ -6,6 +6,9 @@ WHMCS Dynadot Registrar Module
 
 The only Dynadot WHMCS module I could find was old, outdated, and really didn't even work anymore.  Because the only thing that worked was to register a new domain name, I decided to go ahead and create a new module myself.
 
+If there is an update available you will know when you login to your WHMCS installation as you will see an update notice:
+
+![update notice](https://smyl.es/img/Selection-1034x158-99.png)
 ### Features
 
 Feature | Status | Comments

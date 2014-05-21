@@ -34,6 +34,11 @@ git clone https://github.com/tripflex/whmcs-dynadot.git dynadot
 
 Or [download the lastest release](https://github.com/tripflex/whmcs-dynadot/releases/) and unzip to the `/modules/registrars` directory.
 
+## Setup
+You must first configure the module with your API key from Dyandot, go to `Setup > Products/Services > Domain Registrars` and enable the Dynadot module.  You then need to click on `Configure` and enter your API key.
+
+[Get your Dynadot API key here](https://www.dynadot.com/account/domain/setting/api.html)
+
 ## Troubleshooting
 
 I purposely put plenty of debugging inside of this module, so if you go to `Utilities > Logs > Module Log` from the menu in your WHMCS installation, once you enable debug logging you will see plenty of debug output from the module.

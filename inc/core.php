@@ -14,7 +14,7 @@ class WHMCS_Dynadot {
 
 	const version = '2.0.0';
 	const api_url = 'https://api.dynadot.com/api3.xml?key=';
-	public $enable_debug = false;
+	public $enable_debug = true;
 	protected $error;
 	protected $command;
 	protected $domain;
@@ -33,7 +33,6 @@ class WHMCS_Dynadot {
 	public static function check_for_update() {
 		$url     = 'https://github.com/tripflex/whmcs-dynadot/raw/master/release';
 		$release = file_get_contents( $url, "r" );
-		logModuleCall( 'dynadot', 'update check', self::version, intval($release));
 		if ( intval( $release ) > intval( self::version ) ) {
 			return true;
 		} else {
@@ -161,6 +160,101 @@ class WHMCS_Dynadot {
 		}
 
 		return $this->getValues();
+	}
+
+	function GetDNS( $params = array() ) {
+
+		$records = array();
+
+		$this->setCommand( 'domain_info' );
+		$response    = $this->callAPI();
+		if( ! $response ) return array();
+
+		$data = $this->xmlToArrayJSON( $response->xpath( '//NameServerSettings' )[ 0 ] );
+
+		$dns_types = array( 'Dynadot Stealth Forwarding', 'Dynadot Forwarding', 'Dynadot DNS' );
+
+		if( in_array( $data['Type'], $dns_types ) ){
+
+			switch( $data['Type'] ){
+
+				case 'Dynadot Stealth Forwarding':
+					$records[] = array( 'hostname' => $this->getDomain(), 'type' => 'FRAME', 'address' => $data['ForwardTo'] );
+					break;
+
+				case 'Dynadot Forwarding':
+					$records[] = array( 'hostname' => $this->getDomain(), 'type' => 'URL', 'address' => $data['ForwardTo'] );
+					break;
+
+				case 'Dynadot DNS':
+					$records = $this->convertDNSarray( $data );
+					break;
+			}
+
+		}
+
+		return $records;
+	}
+
+	function convertDNSarray( $dynadotDNS ){
+
+		if ( $dynadotDNS[ 'MainDomain' ][ 'RecordType' ] == 'Forward' ) $dynadotDNS[ 'MainDomain' ][ 'RecordType' ] = 'URL';
+		$records[ ] = array( 'hostname' => $this->getDomain(), 'type' => $dynadotDNS[ 'MainDomain' ][ 'RecordType' ], 'address' => $dynadotDNS[ 'MainDomain' ][ 'Record' ] );
+
+		if ( ! empty( $dynadotDNS[ 'SubDomains' ][ 'SubDomain' ] ) ) {
+
+			foreach ( $dynadotDNS[ 'SubDomains' ][ 'SubDomain' ] as $dnsRecord ) {
+
+				if ( $dnsRecord[ 'RecordType' ] == 'Forward' ) $dnsRecord[ 'RecordType' ] = 'URL';
+				$records[ ] = array( 'hostname' => $dnsRecord[ 'Subhost' ] . '.' . $this->getDomain(), 'type' => $dnsRecord[ 'RecordType' ], 'address' => $dnsRecord[ 'Record' ] );
+
+			}
+
+			foreach ( $dynadotDNS[ 'MxRecords' ][ 'MxRecord' ] as $mxRecord ) {
+
+				$records[ ] = array( 'type' => 'MX', 'address' => $mxRecord[ 'Host' ], 'priority' => $mxRecord[ 'Distance' ] );
+
+			}
+
+		}
+
+		return $records;
+
+	}
+
+	function filterDNSarray( & $dns ){
+
+		if ( empty( $dns[ 'address' ] ) ) return array();
+
+		// Remove blank array items
+		$dns = array_filter( $dns );
+
+		if( $dns['priority'] === 'N/A' ) unset( $dns['priority'] );
+		if( $dns['type'] === 'MX' && empty( $dns['priority'] ) ) $dns['priority'] = "0";
+
+		return $dns;
+
+	}
+
+	function SaveDNS( $params ) {
+
+		$existing_records = $this->GetDNS();
+		// Filters out priority and uncessesary values in array so we can compare to existing records
+		$form_post_records = array_map( array( $this, 'filterDNSarray' ), $params[ 'dnsrecords' ] );
+		// Compare $existing_records to $form_post_records and return only modified or new records
+		$records_to_process = array_map( 'unserialize', array_diff( array_map( 'serialize', $form_post_records ), array_map( 'serialize', $existing_records ) ) );
+
+		# Loop through the submitted records
+		foreach ( $params[ "dnsrecords" ] AS $key => $values ) {
+			$hostname = $values[ "hostname" ];
+			$type     = $values[ "type" ];
+			$address  = $values[ "address" ];
+			# Add your code to update the record here
+		}
+		# If error, return the error message in the value below
+//		$values[ "error" ] = $Enom->Values[ "Err1" ];
+
+		return array();
 	}
 
 	public function register() {
